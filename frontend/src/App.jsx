@@ -25,8 +25,8 @@ export default function App() {
         <Route path="/recettes" element={<RouteProtegee><Recettes /></RouteProtegee>} />
         <Route path="/frigo" element={<RouteProtegee><MonFrigo /></RouteProtegee>} />
         <Route path="/recette/:id" element={<RouteProtegee><DetailRecette /></RouteProtegee>} />
-        <Route path="/ajouter" element={<RouteProtegee><AjouterRecette /></RouteProtegee>} />
-
+<Route path="/ajouter" element={<RouteProtegee><AjouterRecette key="ajout" /></RouteProtegee>} />
+<Route path="/modifier/:id" element={<RouteProtegee><AjouterRecette key="modif" /></RouteProtegee>} />
         {/* Adresse inconnue → retour à l'accueil */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

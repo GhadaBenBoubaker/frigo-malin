@@ -2,8 +2,12 @@
 import { useState } from 'react';
 import CarteRecette from '../components/CarteRecette';
 import { ingredients, recettes, nomIngredient } from '../data/donneesTest';
+import { ingredients, nomIngredient } from '../data/donneesTest';
+import { useRecettes } from '../context/RecettesContext';
 
 export default function MonFrigo() {
+  // On récupère toutes les recettes (départ + ajoutées) à la place de la liste fixe
+const { toutesLesRecettes: recettes } = useRecettes();
   // Les numéros des ingrédients cochés (au début : aucun)
   const [coches, setCoches] = useState([]);
 

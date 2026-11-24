@@ -508,3 +508,132 @@ button.puce:hover { transform: translateY(-2px); border-color: var(--vert); }
 .recherche-effacer:hover { background: #d4f0de; }
 
 .resultats-compteur { text-align: center; color: var(--texte-doux); margin: -10px 0 24px; }
+/* ================= MES RECETTES : MODIFIER / SUPPRIMER ================= */
+
+/* Une carte + ses boutons en dessous */
+.carte-wrap { display: flex; flex-direction: column; gap: 8px; }
+.carte-actions { display: flex; gap: 8px; }
+
+/* Les deux boutons ont le même style de base */
+.action-modifier,
+.action-supprimer {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  border: 1px solid var(--bordure);
+  border-radius: 12px;
+  background: white;
+  color: var(--texte);
+  font-weight: 600;
+  font-size: 14px;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.action-modifier:hover { border-color: var(--vert); color: var(--vert-fonce); transform: translateY(-2px); }
+.action-supprimer { color: #c0392b; }
+.action-supprimer:hover { background: #fdecec; border-color: #e8b4ae; transform: translateY(-2px); }
+
+/* Les boutons sur la page détail */
+.detail-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.detail-actions .action-modifier,
+.detail-actions .action-supprimer { flex: none; padding: 10px 18px; }
+
+/* Le cadre pointillé quand on n'a pas encore ajouté de recette */
+.vide-carte {
+  text-align: center;
+  padding: 36px 20px;
+  border: 2px dashed var(--bordure);
+  border-radius: 20px;
+  color: var(--texte-doux);
+}
+.vide-carte p { margin: 0 0 18px; }
+.vide-carte .btn { display: inline-block; }
+/* ================= MENU ⋮ SUR LES CARTES ================= */
+
+/* La carte devient le point de repère pour placer le menu */
+.carte-wrap { position: relative; }
+
+/* L'emplacement du bouton ⋮ : coin haut droit de la carte */
+.menu-carte {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;   /* passe au-dessus de la photo */
+}
+
+/* Le rond blanc avec les trois points */
+.menu-bouton {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--texte);
+}
+.menu-bouton:hover { background: white; color: var(--vert-fonce); }
+
+/* La petite fenêtre qui s'ouvre sous le bouton */
+.menu-liste {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  min-width: 160px;
+  background: white;
+  border: 1px solid var(--bordure);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+/* Chaque ligne du menu : Modifier, Supprimer */
+.menu-item {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--texte);
+  text-decoration: none;
+  cursor: pointer;
+}
+.menu-item:hover { background: var(--vert-clair); }
+
+/* "Supprimer" en rouge */
+.menu-item-danger { color: #c0392b; }
+.menu-item-danger:hover { background: #fdecec; }
+/* ================= MENU ⋮ : EN BAS À DROITE DE LA CARTE ================= */
+
+/* Le bouton ⋮ se place en bas à droite (avant : en haut à droite) */
+.menu-carte {
+  top: auto;       /* on enlève la position "en haut" */
+  bottom: 14px;    /* à 14 px du bas de la carte */
+  right: 14px;     /* à 14 px du bord droit */
+}
+
+/* Un peu moins grand pour bien s'intégrer à côté du temps */
+.menu-bouton {
+  width: 34px;
+  height: 34px;
+  background: var(--fond);          /* fond léger, car il est sur la partie blanche */
+  border: 1px solid var(--bordure);
+  box-shadow: none;
+}
+.menu-bouton:hover { background: var(--vert-clair); border-color: #c9ecd5; }
+
+/* Le menu s'ouvre vers le HAUT, au-dessus du bouton */
+.menu-liste {
+  top: auto;       /* on enlève la position "sous le bouton" */
+  bottom: 42px;    /* il apparaît au-dessus du bouton */
+  right: 0;
+}

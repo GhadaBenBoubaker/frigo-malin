@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { ApolloClient, InMemoryCache, HttpLink } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client/react';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { RecettesProvider } from './context/RecettesContext.jsx';
 import App from './App.jsx';
 import './index.css';
 
@@ -17,9 +18,11 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ApolloProvider client={client}>
       <BrowserRouter>
-        {/* AuthProvider : toute l'app sait qui est connecté */}
         <AuthProvider>
-          <App />
+          {/* RecettesProvider est DANS AuthProvider : il connaît l'utilisateur */}
+          <RecettesProvider>
+            <App />
+          </RecettesProvider>
         </AuthProvider>
       </BrowserRouter>
     </ApolloProvider>

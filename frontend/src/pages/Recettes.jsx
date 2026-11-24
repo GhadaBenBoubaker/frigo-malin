@@ -1,42 +1,54 @@
 // src/pages/Recettes.jsx
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import CarteRecette from '../components/CarteRecette';
-import { recettes, nomIngredient } from '../data/donneesTest';
-
-// Met un texte en minuscules et sans accents : "Pâtes" devient "pates".
-// Comme ça, la recherche trouve les mots même si on oublie les accents.
+import { nomIngredient } from '../data/donneesTest';
+import { useRecettes } from '../context/RecettesContext';
+import MenuCarte from '../components/MenuCarte';
+// Met un texte en minuscules et sans accents : "Pâtes" devient "pates"
 function simplifier(texte) {
   return texte
-    .normalize('NFD')                // sépare les lettres de leurs accents
-    .replace(/[\u0300-\u036f]/g, '') // supprime les accents
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
 }
 
 export default function Recettes() {
-  // Ce que l'utilisateur a tapé dans la barre (au début : rien)
+  const { toutesLesRecettes, mesRecettes, supprimerRecette } = useRecettes();
   const [recherche, setRecherche] = useState('');
 
   const motCherche = simplifier(recherche.trim());
 
-  // On garde seulement les recettes qui correspondent
-  const resultats = recettes.filter((r) => {
-    // Si la barre est vide, on garde tout
+  // Une recette correspond si son titre ou un de ses ingrédients contient le mot
+  function correspond(r) {
     if (motCherche === '') return true;
+    const texte = simplifier(r.titre + ' ' + r.ingredientIds.map(nomIngredient).join(' '));
+    return texte.includes(motCherche);
+  }
 
-    // On regroupe le titre et les noms des ingrédients dans un seul texte
-    const texteRecette = simplifier(
-      r.titre + ' ' + r.ingredientIds.map(nomIngredient).join(' ')
-    );
+  // Mes recettes (filtrées par la recherche)
+  const mesResultats = mesRecettes.filter(correspond);
 
-    // La recette est gardée si ce texte contient le mot cherché
-    return texteRecette.includes(motCherche);
-  });
+  // Les autres recettes : toutes sauf les miennes (pour ne pas les voir en double)
+  const mesIds = mesRecettes.map((r) => r.id);
+  const autresResultats = toutesLesRecettes.filter(
+    (r) => !mesIds.includes(r.id) && correspond(r)
+  );
+
+  // Suppression avec confirmation
+  function supprimer(r) {
+    if (window.confirm(`Supprimer la recette « ${r.titre} » ?`)) {
+      supprimerRecette(r.id);
+    }
+  }
+
+  const total = mesResultats.length + autresResultats.length;
 
   return (
     <section className="section">
-      <h2>Toutes les recettes</h2>
+      <h2>Recettes</h2>
 
-      {/* La barre de recherche */}
+      {/* Barre de recherche */}
       <div className="recherche">
         <span className="recherche-icone">🔍</span>
         <input
@@ -45,37 +57,59 @@ export default function Recettes() {
           onChange={(e) => setRecherche(e.target.value)}
           placeholder="Rechercher une recette ou un ingrédient..."
         />
-
-        {/* Le bouton ✕ apparaît seulement si quelque chose est écrit */}
         {recherche && (
-          <button
-            type="button"
-            className="recherche-effacer"
-            onClick={() => setRecherche('')}
-            aria-label="Effacer la recherche"
-          >
-            ✕
-          </button>
+          <button type="button" className="recherche-effacer" onClick={() => setRecherche('')}
+                  aria-label="Effacer la recherche">✕</button>
         )}
       </div>
 
-      {/* Le nombre de résultats, affiché seulement pendant une recherche */}
       {motCherche !== '' && (
         <p className="resultats-compteur">
-          {resultats.length} recette{resultats.length > 1 ? 's' : ''} trouvée
-          {resultats.length > 1 ? 's' : ''}
+          {total} recette{total > 1 ? 's' : ''} trouvée{total > 1 ? 's' : ''}
         </p>
       )}
 
-      {/* Aucun résultat : un message à la place de la liste */}
-      {resultats.length === 0 ? (
+      {/* Aucun résultat du tout */}
+      {motCherche !== '' && total === 0 && (
         <p className="vide">Aucune recette ne correspond à « {recherche} » 😕</p>
-      ) : (
-        <div className="grille">
-          {resultats.map((r) => (
-            <CarteRecette key={r.id} recette={r} />
-          ))}
-        </div>
+      )}
+
+      {/* ----- PARTIE 1 : TOUTES LES RECETTES (en haut) ----- */}
+      {autresResultats.length > 0 && (
+        <>
+          <h3 className="sous-titre">🍽️ Toutes les recettes</h3>
+          <div className="grille">
+            {autresResultats.map((r) => (
+              <CarteRecette key={r.id} recette={r} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ----- PARTIE 2 : MES RECETTES AJOUTÉES (en bas) ----- */}
+      {/* Pendant une recherche, on cache cette partie si elle est vide */}
+      {(motCherche === '' || mesResultats.length > 0) && (
+        <>
+          <h3 className="sous-titre">📌 Mes recettes ajoutées</h3>
+
+          {mesRecettes.length === 0 ? (
+            // Pas encore de recette ajoutée : une invitation
+            <div className="vide-carte">
+              <p>Vous n'avez pas encore ajouté de recette.</p>
+              <Link to="/ajouter" className="btn btn-principal">+ Ajouter ma première recette</Link>
+            </div>
+          ) : (
+            <div className="grille">
+              {mesResultats.map((r) => (
+               <div className="carte-wrap" key={r.id}>
+  <CarteRecette recette={r} />
+  {/* Le menu ⋮ est placé dans le coin de la carte grâce au CSS */}
+  <MenuCarte recette={r} onSupprimer={() => supprimer(r)} />
+</div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </section>
   );
