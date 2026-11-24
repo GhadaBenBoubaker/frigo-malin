@@ -1,14 +1,29 @@
 // src/pages/AjouterRecette.jsx
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ingredients } from '../data/donneesTest';
 import { useRecettes } from '../context/RecettesContext';
 import { reduireImage } from '../utils/photo';
 
+// Ce composant attend que les recettes soient chargées depuis le backend,
+// puis affiche le formulaire. Ainsi, les champs de modification
+// se remplissent correctement, même après un rafraîchissement (F5).
 export default function AjouterRecette() {
+  const { chargement } = useRecettes();
+
+  if (chargement) {
+    return <section className="section"><p className="vide">Chargement…</p></section>;
+  }
+
+  return <FormulaireRecette />;
+}
+
+// Le formulaire d'ajout ET de modification
+function FormulaireRecette() {
   const { id } = useParams();     // présent seulement sur /modifier/:id
   const navigate = useNavigate();
-  const { mesRecettes, ajouterRecette, modifierRecette } = useRecettes();
+
+  // "ingredients" vient maintenant de la base de données (via le contexte)
+  const { mesRecettes, ingredients, ajouterRecette, modifierRecette } = useRecettes();
 
   // Mode modification ? Alors on cherche la recette parmi MES recettes
   const modeModif = Boolean(id);
@@ -62,7 +77,8 @@ export default function AjouterRecette() {
   }
 
   // Clic sur "Enregistrer"
-  function envoyer(e) {
+  // "async" : on attend la réponse du serveur avant de continuer
+  async function envoyer(e) {
     e.preventDefault();
 
     if (choisis.length === 0) {
@@ -80,16 +96,18 @@ export default function AjouterRecette() {
       ingredientIds: choisis,
     };
 
-    // Plus tard : ici on appellera les mutations GraphQL
-    // "ajouterRecette" ou "modifierRecette"
-    const ok = modeModif ? modifierRecette(aModifier.id, donnees) : ajouterRecette(donnees);
+    // On envoie au backend : mutation "modifierRecette" ou "ajouterRecette".
+    // La fonction renvoie un message d'erreur, ou null si tout va bien.
+    const erreur = modeModif
+      ? await modifierRecette(aModifier.id, donnees)
+      : await ajouterRecette(donnees);
 
-    if (!ok) {
-      setMessage('⚠️ Le navigateur n\'a plus de place : essayez avec une photo plus petite.');
+    if (erreur) {
+      setMessage('⚠️ ' + erreur); // on affiche l'erreur du serveur
       return;
     }
 
-    navigate('/recettes'); // on retourne voir la liste
+    navigate('/recettes'); // tout va bien : on retourne voir la liste
   }
 
   return (

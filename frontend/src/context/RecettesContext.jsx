@@ -1,69 +1,90 @@
 // src/context/RecettesContext.jsx
-import { createContext, useContext, useState } from 'react';
-import { recettes as recettesTest } from '../data/donneesTest';
+import { createContext, useContext } from 'react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import { useAuth } from './AuthContext';
+import { RECETTES, INGREDIENTS } from '../graphql/queries';
+import {
+  AJOUTER_RECETTE,
+  MODIFIER_RECETTE,
+  SUPPRIMER_RECETTE,
+  AJOUTER_AVIS,
+} from '../graphql/mutations';
+import { messageErreur } from '../utils/erreurs';
 
 const RecettesContext = createContext();
 
-// Le nom sous lequel la liste est gardée dans le navigateur
-const CLE = 'recettesAjoutees';
-
 export function RecettesProvider({ children }) {
-  const { user } = useAuth(); // l'utilisateur connecté
+  const { user, deconnexion } = useAuth();
 
-  // Les recettes ajoutées, relues au démarrage depuis le navigateur
-  const [ajoutees, setAjoutees] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(CLE) || '[]');
-    } catch {
-      return [];
-    }
-  });
+  // On lit les recettes et les ingrédients dans la base
+  const { data: dataRecettes, loading: chargement, error: erreur, refetch } = useQuery(RECETTES);
+  const { data: dataIngredients } = useQuery(INGREDIENTS);
 
-  // Met à jour la liste à l'écran ET dans le navigateur.
-  // Renvoie false si le navigateur n'a plus de place.
-  function sauvegarder(liste) {
-    setAjoutees(liste);
-    try {
-      localStorage.setItem(CLE, JSON.stringify(liste));
-      return true;
-    } catch {
-      return false;
-    }
-  }
+  const [mutAjouter] = useMutation(AJOUTER_RECETTE);
+  const [mutModifier] = useMutation(MODIFIER_RECETTE);
+  const [mutSupprimer] = useMutation(SUPPRIMER_RECETTE);
+  const [mutAvis] = useMutation(AJOUTER_AVIS);
 
-  // Ajoute une recette (le numéro vient de l'heure, donc il est unique)
-  function ajouterRecette(donnees) {
-    const nouvelle = { ...donnees, id: Date.now(), auteurEmail: user.email, avis: [] };
-    return sauvegarder([nouvelle, ...ajoutees]);
-  }
+  const toutesLesRecettes = dataRecettes?.recettes ?? [];
+  const ingredients = dataIngredients?.ingredients ?? [];
 
-  // Modifie une recette : on remplace seulement les champs envoyés
-  function modifierRecette(id, donnees) {
-    return sauvegarder(ajoutees.map((r) => (r.id === id ? { ...r, ...donnees } : r)));
-  }
-
-  // Supprime une recette
-  function supprimerRecette(id) {
-    sauvegarder(ajoutees.filter((r) => r.id !== id));
+  // Le nom d'un ingrédient à partir de son numéro
+  function nomIngredient(id) {
+    return ingredients.find((i) => i.id === id)?.nom ?? '';
   }
 
   // Seulement MES recettes (celles dont je suis l'auteur)
-  const mesRecettes = ajoutees.filter((r) => r.auteurEmail === user?.email);
+  const mesRecettes = toutesLesRecettes.filter(
+    (r) => r.auteurEmail && r.auteurEmail === user?.email
+  );
 
-  // Toutes les recettes : les ajoutées + celles de départ
-  const toutesLesRecettes = [...ajoutees, ...recettesTest];
+  // Lance une action sur le serveur, puis recharge la liste.
+  // Renvoie un message d'erreur, ou null si tout va bien.
+  async function executer(action) {
+    try {
+      await action();
+      await refetch(); // on recharge les recettes à jour
+      return null;
+    } catch (e) {
+      const message = messageErreur(e);
+      // Le jeton n'est plus valide (ex : backend redémarré) : on déconnecte
+      if (message.includes('Connexion requise')) deconnexion();
+      return message;
+    }
+  }
+
+  const ajouterRecette = (donnees) =>
+    executer(() => mutAjouter({ variables: { input: donnees } }));
+
+  const modifierRecette = (id, donnees) =>
+    executer(() => mutModifier({ variables: { id, input: donnees } }));
+
+  const supprimerRecette = (id) =>
+    executer(() => mutSupprimer({ variables: { id } }));
+
+  const ajouterAvis = (recetteId, note, commentaire) =>
+    executer(() => mutAvis({ variables: { recetteId, note, commentaire } }));
 
   return (
     <RecettesContext.Provider
-      value={{ toutesLesRecettes, mesRecettes, ajouterRecette, modifierRecette, supprimerRecette }}
+      value={{
+        toutesLesRecettes,
+        mesRecettes,
+        ingredients,
+        nomIngredient,
+        chargement,
+        erreur,
+        ajouterRecette,
+        modifierRecette,
+        supprimerRecette,
+        ajouterAvis,
+      }}
     >
       {children}
     </RecettesContext.Provider>
   );
 }
 
-// Raccourci pour l'utiliser dans n'importe quelle page
 export function useRecettes() {
   return useContext(RecettesContext);
 }

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import CarteRecette from '../components/CarteRecette';
-import { nomIngredient } from '../data/donneesTest';
+
 import { useRecettes } from '../context/RecettesContext';
 import MenuCarte from '../components/MenuCarte';
 // Met un texte en minuscules et sans accents : "Pâtes" devient "pates"
@@ -14,8 +14,8 @@ function simplifier(texte) {
 }
 
 export default function Recettes() {
-  const { toutesLesRecettes, mesRecettes, supprimerRecette } = useRecettes();
-  const [recherche, setRecherche] = useState('');
+  const { toutesLesRecettes, mesRecettes, supprimerRecette, nomIngredient, chargement, erreur } = useRecettes();
+    const [recherche, setRecherche] = useState('');
 
   const motCherche = simplifier(recherche.trim());
 
@@ -36,13 +36,21 @@ export default function Recettes() {
   );
 
   // Suppression avec confirmation
-  function supprimer(r) {
+  async function supprimer(r) {
     if (window.confirm(`Supprimer la recette « ${r.titre} » ?`)) {
-      supprimerRecette(r.id);
+      const message = await supprimerRecette(r.id);
+      if (message) window.alert(message);
     }
   }
 
   const total = mesResultats.length + autresResultats.length;
+
+    if (chargement) {
+    return <section className="section"><p className="vide">Chargement des recettes…</p></section>;
+  }
+  if (erreur) {
+    return <section className="section"><p className="vide">Impossible de charger les recettes. Le backend est-il démarré ? 😕</p></section>;
+  }
 
   return (
     <section className="section">

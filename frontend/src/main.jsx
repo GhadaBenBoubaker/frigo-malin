@@ -9,8 +9,19 @@ import { RecettesProvider } from './context/RecettesContext.jsx';
 import App from './App.jsx';
 import './index.css';
 
+const lienHttp = new HttpLink({
+  uri: 'http://localhost:8080/graphql',
+  // Avant chaque requête, on ajoute le jeton s'il existe
+  fetch: (uri, options) => {
+    const token = localStorage.getItem('token');
+    const headers = { ...options.headers };
+    if (token) headers.authorization = `Bearer ${token}`;
+    return fetch(uri, { ...options, headers });
+  },
+});
+
 const client = new ApolloClient({
-  link: new HttpLink({ uri: 'http://localhost:8080/graphql' }),
+  link: lienHttp,
   cache: new InMemoryCache(),
 });
 

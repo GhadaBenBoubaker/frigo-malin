@@ -12,9 +12,10 @@ export default function Connexion() {
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState('');
 
-  function envoyer(e) {
+    // "async" + "await" : on attend la réponse du serveur
+  async function envoyer(e) {
     e.preventDefault(); // empêche le rechargement de la page
-    const message = connexion(email, motDePasse);
+    const message = await connexion(email, motDePasse);
 
     if (message) {
       setErreur(message); // il y a eu un problème

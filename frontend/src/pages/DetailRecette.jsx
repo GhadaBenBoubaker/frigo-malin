@@ -1,7 +1,6 @@
 // src/pages/DetailRecette.jsx
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { nomIngredient, ingredients } from '../data/donneesTest';
 import { useRecettes } from '../context/RecettesContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -9,14 +8,22 @@ export default function DetailRecette() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { toutesLesRecettes, supprimerRecette } = useRecettes();
+  const {
+    toutesLesRecettes, ingredients, nomIngredient,
+    chargement, supprimerRecette, ajouterAvis,
+  } = useRecettes();
 
-  // On cherche la recette dans TOUTES les recettes (départ + ajoutées)
-  const recette = toutesLesRecettes.find((r) => r.id === Number(id));
-
-  const [avis, setAvis] = useState(recette?.avis ?? []);
   const [note, setNote] = useState(5);
   const [commentaire, setCommentaire] = useState('');
+  const [message, setMessage] = useState(''); // message d'erreur du serveur
+
+  // On attend que les recettes soient arrivées du backend
+  if (chargement) {
+    return <section className="section"><p className="vide">Chargement…</p></section>;
+  }
+
+  // On cherche la recette dans la liste venue de la base
+  const recette = toutesLesRecettes.find((r) => r.id === Number(id));
 
   if (!recette) {
     return (
@@ -29,13 +36,16 @@ export default function DetailRecette() {
     );
   }
 
-  // Suis-je l'auteur de cette recette ? (seules les recettes ajoutées ont un auteur)
+  const avis = recette.avis; // les avis viennent directement de la base
+
+  // Suis-je l'auteur de cette recette ?
   const estAuteur = recette.auteurEmail && recette.auteurEmail === user?.email;
 
-  function supprimer() {
+  async function supprimer() {
     if (window.confirm(`Supprimer la recette « ${recette.titre} » ?`)) {
-      supprimerRecette(recette.id);
-      navigate('/recettes');
+      const erreur = await supprimerRecette(recette.id);
+      if (erreur) setMessage('⚠️ ' + erreur);
+      else navigate('/recettes');
     }
   }
 
@@ -43,25 +53,27 @@ export default function DetailRecette() {
     ? (avis.reduce((somme, a) => somme + a.note, 0) / avis.length).toFixed(1)
     : null;
 
-  function envoyerAvis(e) {
+  // Envoie l'avis au backend (mutation "ajouterAvis")
+  async function envoyerAvis(e) {
     e.preventDefault();
-    const nouvelAvis = { id: Date.now(), note: Number(note), commentaire };
-    // Plus tard : ici on appellera la mutation GraphQL "ajouterAvis"
-    setAvis([nouvelAvis, ...avis]);
-    setCommentaire('');
+    const erreur = await ajouterAvis(recette.id, Number(note), commentaire);
+    if (erreur) {
+      setMessage('⚠️ ' + erreur);
+    } else {
+      setMessage('');
+      setCommentaire('');
+    }
   }
 
   return (
     <section className="section detail">
       <Link to="/recettes" className="retour">← Toutes les recettes</Link>
 
-      {/* Grande photo si la recette en a une */}
       {recette.image && (
         <img src={recette.image} alt={recette.titre} className="detail-banniere" />
       )}
 
       <div className="detail-entete">
-        {/* L'emoji ne s'affiche que s'il n'y a pas de photo */}
         {!recette.image && <div className="detail-emoji">{recette.emoji || '🍽️'}</div>}
         <div>
           <h1 className="detail-titre">{recette.titre}</h1>
@@ -71,7 +83,6 @@ export default function DetailRecette() {
             {moyenne && <span className="info">⭐ {moyenne} ({avis.length} avis)</span>}
           </div>
 
-          {/* Boutons visibles seulement pour l'auteur */}
           {estAuteur && (
             <div className="detail-actions">
               <Link to={`/modifier/${recette.id}`} className="action-modifier">✏️ Modifier</Link>
@@ -82,6 +93,8 @@ export default function DetailRecette() {
           )}
         </div>
       </div>
+
+      {message && <div className="message">{message}</div>}
 
       <div className="detail-colonnes">
         <div className="bloc">
@@ -110,7 +123,7 @@ export default function DetailRecette() {
         {avis.length === 0 && <p className="vide-petit">Pas encore d'avis : soyez le premier !</p>}
         {avis.map((a) => (
           <div className="avis" key={a.id}>
-            <div>{'⭐'.repeat(a.note)}</div>
+            <div>{'⭐'.repeat(a.note)} {a.utilisateur?.nom && <small>par {a.utilisateur.nom}</small>}</div>
             <p>{a.commentaire}</p>
           </div>
         ))}

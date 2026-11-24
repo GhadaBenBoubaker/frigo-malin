@@ -11,8 +11,7 @@ export default function Inscription() {
   const [email, setEmail] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState('');
-
-  function envoyer(e) {
+  async function envoyer(e) {
     e.preventDefault();
 
     // Vérification simple avant d'envoyer
@@ -21,7 +20,7 @@ export default function Inscription() {
       return;
     }
 
-    const message = inscription(nom, email, motDePasse);
+    const message = await inscription(nom, email, motDePasse);
 
     if (message) {
       setErreur(message);

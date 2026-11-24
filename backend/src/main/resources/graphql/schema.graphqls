@@ -1,0 +1,74 @@
+type Query {
+    ingredients: [Ingredient!]!
+    recettes: [Recette!]!
+    recetteParId(id: Int!): Recette
+    mesRecettes: [Recette!]!
+}
+
+type Mutation {
+    inscription(input: RegisterInput!): AuthPayload!
+    connexion(input: LoginInput!): AuthPayload!
+    ajouterRecette(input: RecetteInput!): Recette!
+    modifierRecette(id: Int!, input: RecetteInput!): Recette!
+    supprimerRecette(id: Int!): Boolean!
+    ajouterAvis(recetteId: Int!, note: Int!, commentaire: String!): Avis!
+}
+
+type Ingredient {
+    id: Int!
+    nom: String!
+    emoji: String
+}
+
+type Utilisateur {
+    id: Int!
+    nom: String!
+    email: String!
+}
+
+type Avis {
+    id: Int!
+    note: Int!
+    commentaire: String!
+    utilisateur: Utilisateur
+    recetteId: Int!
+}
+
+type Recette {
+    id: Int!
+    titre: String!
+    description: String
+    image: String
+    emoji: String
+    tempsPreparation: Int!
+    etapes: [String!]!
+    ingredientIds: [Int!]!
+    auteurEmail: String
+    avis: [Avis!]!
+}
+
+type AuthPayload {
+    token: String!
+    user: Utilisateur!
+}
+
+input RegisterInput {
+    nom: String!
+    email: String!
+    motDePasse: String!
+}
+
+input LoginInput {
+    email: String!
+    motDePasse: String!
+}
+
+input RecetteInput {
+    titre: String!
+    description: String
+    image: String
+    emoji: String
+    tempsPreparation: Int!
+    etapes: [String!]!
+    ingredientIds: [Int!]!
+}

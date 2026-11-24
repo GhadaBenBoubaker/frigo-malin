@@ -1,56 +1,61 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useState } from 'react';
+import { useApolloClient } from '@apollo/client/react';
+import { INSCRIPTION, CONNEXION } from '../graphql/mutations';
+import { messageErreur } from '../utils/erreurs';
 
-// Le "contexte" : une boîte partagée par toute l'app
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  // L'utilisateur connecté (null = personne). On le relit au démarrage
-  // pour rester connecté même après un rechargement de la page.
+  const client = useApolloClient(); // pour appeler le backend
+
+  // L'utilisateur connecté. Il faut le profil ET le jeton pour être connecté.
   const [user, setUser] = useState(() => {
     const sauvegarde = localStorage.getItem('user');
-    return sauvegarde ? JSON.parse(sauvegarde) : null;
+    const token = localStorage.getItem('token');
+    return sauvegarde && token ? JSON.parse(sauvegarde) : null;
   });
 
-  // Garde l'utilisateur en mémoire (état React + navigateur)
-  function connecter(utilisateur) {
-    setUser(utilisateur);
+  // Garde le jeton et l'utilisateur (état React + navigateur)
+  function connecter(token, utilisateur) {
+    localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(utilisateur));
+    setUser(utilisateur);
   }
 
   // Crée un compte. Renvoie un message d'erreur, ou null si tout va bien.
-  // (Plus tard : remplacé par la mutation GraphQL "inscription")
-  function inscription(nom, email, motDePasse) {
-    const comptes = JSON.parse(localStorage.getItem('comptes') || '[]');
-
-    if (comptes.some((c) => c.email === email)) {
-      return 'Cet email est déjà utilisé';
+  async function inscription(nom, email, motDePasse) {
+    try {
+      const { data } = await client.mutate({
+        mutation: INSCRIPTION,
+        variables: { input: { nom, email, motDePasse } },
+      });
+      connecter(data.inscription.token, data.inscription.user);
+      return null;
+    } catch (e) {
+      return messageErreur(e);
     }
-
-    comptes.push({ nom, email, motDePasse });
-    localStorage.setItem('comptes', JSON.stringify(comptes));
-    connecter({ nom, email });
-    return null;
   }
 
   // Se connecte. Renvoie un message d'erreur, ou null si tout va bien.
-  // (Plus tard : remplacé par la mutation GraphQL "connexion")
-  function connexion(email, motDePasse) {
-    const comptes = JSON.parse(localStorage.getItem('comptes') || '[]');
-    const compte = comptes.find(
-      (c) => c.email === email && c.motDePasse === motDePasse
-    );
-
-    if (!compte) return 'Email ou mot de passe incorrect';
-
-    connecter({ nom: compte.nom, email: compte.email });
-    return null;
+  async function connexion(email, motDePasse) {
+    try {
+      const { data } = await client.mutate({
+        mutation: CONNEXION,
+        variables: { input: { email, motDePasse } },
+      });
+      connecter(data.connexion.token, data.connexion.user);
+      return null;
+    } catch (e) {
+      return messageErreur(e);
+    }
   }
 
   // Se déconnecte
   function deconnexion() {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   }
 
   return (
@@ -60,7 +65,6 @@ export function AuthProvider({ children }) {
   );
 }
 
-// Raccourci pour utiliser la boîte dans n'importe quel composant
 export function useAuth() {
   return useContext(AuthContext);
 }
